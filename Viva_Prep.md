@@ -17,7 +17,7 @@
   - `make_plane_vector(plane, coords, color)`: Draws an `Arrow` from the origin `(0, 0)` to `coords` using `plane.c2p(...)` (coordinate-to-point conversion).
   - `make_eigen_lines(plane)`: Draws dashed invariant lines along $y = x$ (orange) and $y = -x$ (teal).
   - `make_scene_header(title_text, badge_text)`: Standardizes top-left title and top-right badge placement.
-- **`helpers/voice.py`**: Defines `KokoroSpeechService(SpeechService)` (offline neural TTS via `kokoro-onnx`, voice `am_michael`, speed `0.96`), plus `EdgeTTSSpeechService` and `GTTSService` fallbacks, so `VoiceoverScene` automatically generates and caches `.mp3` clips and synchronizes `with self.voiceover(...)` blocks.
+- **`helpers/voice.py`**: Defines `F5TTSSpeechService(SpeechService)` (offline zero-shot voice cloning on Apple Silicon MLX via `f5-tts-mlx`, conditioned on a 13.25-second student voice sample), plus `KokoroSpeechService`, `EdgeTTSSpeechService`, and `GTTSService` fallbacks, so `VoiceoverScene` automatically generates and caches `.mp3` clips and synchronizes `with self.voiceover(...)` blocks.
 - **`main.py`**: Orchestrates rendering all 6 scenes at 1080p30 via `manim -qh --fps 30` and concatenates them with `ffmpeg` (`libx264`, `-crf 21`, `yuv420p`, AAC audio) into `E25B070826_Video.mp4`.
 
 ### Scene 1 — `scene1_hook.py` (`Scene1Hook`)
@@ -135,7 +135,7 @@
    - If you apply `MATRIX_A` to a screen-sized `[-6, 6] x [-4, 4]` grid, its transformed corners pull inward and leave blank ungridded triangles at the edges. An oversized background grid fills the entire 16:9 frame even after transformation, while keeping tick numbers on the static reference axes prevents numbers from flying off-screen or overlapping.
 4. **Why `ValueTracker` + `always_redraw` in Scene 3?**
    - Rather than hardcoding discrete snapshots, a single continuous scalar `theta_tracker` drives $\mathbf{v}(\theta)$, $A\mathbf{v}(\theta)$, the angle sector `Arc`, and the telemetry HUD simultaneously every frame, visually proving that $\angle(\mathbf{v}, A\mathbf{v}) = 0^\circ$ occurs *only* at the four eigen-angles around the unit circle.
-5. **Why `KokoroSpeechService` (offline ONNX) via `manim-voiceover`?**
-   - `manim-voiceover` automatically measures each spoken cue's duration (`tracker.duration`) so animations never overrun or lag behind narration, while Kokoro ONNX produces calm, natural neural speech completely offline with deterministic caching.
+5. **Why `F5TTSSpeechService` (zero-shot voice cloning on Apple Silicon MLX) via `manim-voiceover`?**
+   - `manim-voiceover` automatically measures each spoken cue's duration (`tracker.duration`) so animations never overrun or lag behind narration, while `f5-tts-mlx` synthesizes consistent narration in the student's cloned voice offline from a single 13.25-second reference clip with deterministic caching (and falls back cleanly to Kokoro ONNX if no reference clip is present).
 6. **Why no background music?**
    - Skipping background music guarantees 100% vocal clarity and avoids any third-party music licensing ambiguity for academic submission.

@@ -131,7 +131,7 @@ class Scene6SummaryCredits(VoiceoverScene):
             Text("Audio & Tools Disclosure:", font_size=22, color=TRANS_VEC_COLOR, weight="BOLD"),
             Text("  - Music: None (voice-only narration for clarity)", font_size=19, color=TEXT_MUTED),
             Text("  - AI Disclosure: Google Antigravity assisted with Manim scripting, narration pacing, and docs.", font_size=19, color=TEXT_MUTED),
-            Text("  - TTS Engine: Kokoro ONNX (offline neural voice 'am_michael') via manim-voiceover.", font_size=19, color=TEXT_MUTED),
+            Text("  - TTS Engine: F5-TTS-MLX (zero-shot voice clone from student's own voice sample) via manim-voiceover.", font_size=18, color=TEXT_MUTED),
             Text("  - All math independently verified via SymPy & NumPy (verify_math.py).", font_size=19, color=TEXT_MUTED),
         ).arrange(DOWN, aligned_edge=LEFT, buff=0.08)
 

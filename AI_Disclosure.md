@@ -9,8 +9,8 @@ In accordance with academic integrity requirements for the Linear Algebra and Ca
    - Assisted in refining the conversational flow and timing of `narration_script.md` to fit the 5-minute target duration.
    - All mathematical derivations and numerical results were independently verified using SymPy and NumPy (`verify_math.py`), and all visual frames and code were reviewed and understood by the student for viva defense.
 
-2. **Text-to-Speech (TTS) Engine**
-   - **Kokoro ONNX (`kokoro-v1.0.onnx`, offline neural voice `am_michael`, speed `0.96`)** via `manim-voiceover` to generate clear voice-over narration audio from `narration_script.md`.
+2. **Text-to-Speech (TTS) & Voice Cloning Engine**
+   - **F5-TTS-MLX (`lucasnewman/f5-tts-mlx`, offline Apple Silicon zero-shot voice cloning)** via `manim-voiceover`, conditioned on a 13.25-second voice sample recorded by the student (`SIDDHANT KUMAR THAKUR`), to synthesize narration for all 6 scenes from `narration_script.md` (with `Kokoro ONNX` configured as offline fallback).
 
 ## Authorship & Originality Statement
 

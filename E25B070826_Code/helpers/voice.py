@@ -1,16 +1,180 @@
-"""Voiceover SpeechService using Kokoro ONNX (offline) with edge-tts / gTTS fallbacks."""
+"""Voiceover SpeechService supporting F5-TTS-MLX voice cloning, Kokoro ONNX, edge-tts, and gTTS."""
 
 import asyncio
 import os
+import re
 import subprocess
 from pathlib import Path
 from manim_voiceover.helper import remove_bookmarks
 from manim_voiceover.services.base import SpeechService
 from manim_voiceover.services.gtts import GTTSService
 
-DEFAULT_KOKORO_DIR = (
-    Path(__file__).resolve().parent.parent.parent / ".venv" / "kokoro_models"
+VENV_ROOT = Path(__file__).resolve().parent.parent.parent / ".venv"
+DEFAULT_KOKORO_DIR = VENV_ROOT / "kokoro_models"
+DEFAULT_F5_REF_WAV = VENV_ROOT / "f5_ref" / "siddhant_ref.wav"
+DEFAULT_F5_REF_TEXT = (
+    "Imagine the two-dimensional plane filled with vectors pointing in many directions. "
+    "Almost every arrow tilts onto a new angle, except along special invariant lines."
 )
+
+
+class F5TTSSpeechService(SpeechService):
+    """Offline zero-shot voice-cloning SpeechService powered by f5-tts-mlx."""
+
+    def __init__(
+        self,
+        ref_audio_path: str | Path = DEFAULT_F5_REF_WAV,
+        ref_text: str = DEFAULT_F5_REF_TEXT,
+        model_name: str = "lucasnewman/f5-tts-mlx",
+        speed: float = 0.98,
+        steps: int = 8,
+        cfg_strength: float = 2.0,
+        seed: int = 42,
+        **kwargs: object,
+    ) -> None:
+        super().__init__(**kwargs)
+        self.ref_audio_path = Path(ref_audio_path)
+        if not self.ref_audio_path.exists():
+            raise FileNotFoundError(f"Reference voice sample not found: {self.ref_audio_path}")
+        self.ref_text = ref_text
+        self.model_name = model_name
+        self.speed = speed
+        self.steps = steps
+        self.cfg_strength = cfg_strength
+        self.seed = seed
+        self._model = None
+        self._ref_audio_mx = None
+
+    def _ensure_loaded(self) -> None:
+        if self._model is not None:
+            return
+        import mlx.core as mx
+        import soundfile as sf
+        from f5_tts_mlx.cfm import F5TTS
+        from f5_tts_mlx.generate import SAMPLE_RATE, TARGET_RMS
+
+        # Compatibility shim for mlx>=0.32 where mx.random.normal requires Python ints in shape
+        if not getattr(mx.random.normal, "_int_shape_patched", False):
+            _orig_normal = mx.random.normal
+
+            def _safe_normal(shape=(), *args, **kwargs):
+                if isinstance(shape, (tuple, list)):
+                    shape = tuple(int(s.item()) if hasattr(s, "item") else int(s) for s in shape)
+                return _orig_normal(shape, *args, **kwargs)
+
+            _safe_normal._int_shape_patched = True
+            mx.random.normal = _safe_normal
+
+        audio, sr = sf.read(str(self.ref_audio_path))
+        if sr != SAMPLE_RATE:
+            raise ValueError(f"Reference audio must be {SAMPLE_RATE} Hz, got {sr} Hz")
+        ref_mx = mx.array(audio)
+        rms = mx.sqrt(mx.mean(mx.square(ref_mx)))
+        if rms < TARGET_RMS:
+            ref_mx = ref_mx * TARGET_RMS / rms
+
+        self._ref_audio_mx = ref_mx
+        self._model = F5TTS.from_pretrained(self.model_name)
+
+    def generate_from_text(
+        self,
+        text: str,
+        cache_dir: str | Path | None = None,
+        path: str | Path | None = None,
+        **kwargs: object,
+    ) -> dict:
+        if cache_dir is None:
+            cache_dir = self.cache_dir
+        Path(cache_dir).mkdir(parents=True, exist_ok=True)
+
+        input_text = remove_bookmarks(text)
+        input_data = {
+            "input_text": input_text,
+            "service": "f5_tts_mlx",
+            "ref": self.ref_audio_path.name,
+            "speed": self.speed,
+            "steps": self.steps,
+            "seed": self.seed,
+        }
+        cached = self.get_cached_result(input_data, cache_dir)
+        if cached is not None:
+            return cached
+
+        if path is None:
+            audio_name = self.get_audio_basename(input_data) + ".mp3"
+        else:
+            audio_name = os.fspath(path)
+
+        out_mp3 = Path(cache_dir) / audio_name
+        tmp_wav = out_mp3.with_suffix(".tmp.wav")
+
+        self._ensure_loaded()
+        import mlx.core as mx
+        import numpy as np
+        import soundfile as sf
+        from f5_tts_mlx.generate import FRAMES_PER_SEC, SAMPLE_RATE, estimated_duration
+        from f5_tts_mlx.utils import convert_char_to_pinyin
+
+        spoken_text = re.sub(r"\bM3\b", "M three", input_text)
+        sentences = [s.strip() for s in re.split(r"(?<=[.!?;:])\s+", spoken_text.strip()) if s.strip()]
+        if not sentences:
+            sentences = [spoken_text.strip()]
+
+        chunks = []
+        pause = mx.zeros((int(0.14 * SAMPLE_RATE),), dtype=mx.float32)
+        for idx, sent in enumerate(sentences):
+            if sent[-1] not in ".!?;:":
+                sent += "."
+            dur_frames = int(
+                estimated_duration(self._ref_audio_mx, self.ref_text, sent, self.speed)
+                * FRAMES_PER_SEC
+            )
+            pinyin = convert_char_to_pinyin([f"{self.ref_text} {sent}"])
+            wave, _ = self._model.sample(
+                mx.expand_dims(self._ref_audio_mx, axis=0),
+                text=pinyin,
+                duration=dur_frames,
+                steps=self.steps,
+                method="rk4",
+                speed=self.speed,
+                cfg_strength=self.cfg_strength,
+                sway_sampling_coef=-1.0,
+                seed=self.seed + idx,
+            )
+            wave = wave[self._ref_audio_mx.shape[0] :]
+            mx.eval(wave)
+            chunks.append(wave)
+            if idx < len(sentences) - 1:
+                chunks.append(pause)
+
+        full_wave = mx.concatenate(chunks, axis=0)
+        sf.write(str(tmp_wav), np.array(full_wave), SAMPLE_RATE)
+
+        subprocess.run(
+            [
+                "ffmpeg",
+                "-y",
+                "-loglevel",
+                "error",
+                "-i",
+                str(tmp_wav),
+                "-af",
+                "highpass=f=80,loudnorm=I=-16:TP=-1.5:LRA=11",
+                "-c:a",
+                "libmp3lame",
+                "-b:a",
+                "192k",
+                str(out_mp3),
+            ],
+            check=True,
+        )
+        tmp_wav.unlink(missing_ok=True)
+
+        return {
+            "input_text": text,
+            "input_data": input_data,
+            "original_audio": audio_name,
+        }
 
 
 class KokoroSpeechService(SpeechService):
@@ -156,7 +320,12 @@ class EdgeTTSSpeechService(SpeechService):
 
 
 def get_speech_service() -> SpeechService:
-    """Return Kokoro ONNX if available, falling back to edge-tts then gTTS."""
+    """Return cloned student voice (F5-TTS-MLX) if reference sample exists, else Kokoro/edge-tts/gTTS."""
+    if DEFAULT_F5_REF_WAV.exists():
+        try:
+            return F5TTSSpeechService()
+        except Exception:
+            pass
     try:
         return KokoroSpeechService(voice="am_michael", speed=0.96, lang="en-us")
     except Exception:

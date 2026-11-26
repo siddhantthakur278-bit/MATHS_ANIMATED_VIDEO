@@ -66,7 +66,7 @@ python E25B070826_Code/main.py -q h
 ## Tools Used, Credits & AI Disclosure
 
 - **Animation Engine:** Manim Community Edition (`manim`)
-- **Voiceover & TTS:** `manim-voiceover` with **Kokoro ONNX** offline neural TTS (`am_michael`)
+- **Voiceover & TTS:** `manim-voiceover` with **F5-TTS-MLX** (offline zero-shot voice cloning from a student-recorded voice sample; `Kokoro ONNX` fallback)
 - **Math Verification:** `SymPy` and `NumPy`
 - **Storyboard PDF:** `ReportLab`
 - **Music:** None (voice-only narration for clarity)
