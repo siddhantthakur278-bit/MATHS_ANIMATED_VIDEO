@@ -1,0 +1,17 @@
+# Virtual environment & Python cache
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+
+# Manim intermediate renders & audio cache (keep final E25B070826_Video.mp4)
+media/
+E25B070826_Code/media/
+*.log
+*.aux
+*.dvi
+*.svg
+*.partial.mp4
+
+# OS files
+.DS_Store

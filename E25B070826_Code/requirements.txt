@@ -1,0 +1,11 @@
+manim>=0.18.0
+manim-voiceover>=0.3.7
+sympy>=1.13.0
+numpy>=1.26.0
+reportlab>=4.2.0
+pypdfium2>=4.0.0
+kokoro-onnx>=0.4.0
+soundfile>=0.12.1
+edge-tts>=6.1.12
+gTTS>=2.5.1
+setuptools<81
