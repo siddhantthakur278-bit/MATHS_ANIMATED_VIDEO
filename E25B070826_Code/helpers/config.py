@@ -26,24 +26,26 @@ V2 = np.array([1, -1], dtype=float)
 
 DET_A = 3
 
-# Consistent color palette (dark slate background with high-contrast accents)
-BG_COLOR = "#0B1120"
-PANEL_BG = "#111C33"
-PANEL_BORDER = "#334155"
+# ── Black / charcoal / grey palette with vivid neon accents ─────────────────
+BG_COLOR = "#080808"          # near-black background
+PANEL_BG = "#111111"          # very dark charcoal card fill
+PANEL_BORDER = "#3A3A3A"      # medium grey card border
+GLOSS_HIGHLIGHT = "#FFFFFF"   # white gloss sheen (used at low opacity)
 
-TEXT_PRIMARY = "#F8FAFC"
-TEXT_MUTED = "#CBD5E1"
+TEXT_PRIMARY = "#F0F0F0"      # near-white text
+TEXT_MUTED = "#909090"        # mid-grey muted text
 
-EIG1_COLOR = "#FB923C"      # Orange: v1 = (1, 1), lambda1 = 3
-EIG2_COLOR = "#2DD4BF"      # Teal:   v2 = (1, -1), lambda2 = 1
-ORD_VEC_COLOR = "#60A5FA"   # Blue-grey: ordinary input vectors v
-TRANS_VEC_COLOR = "#FACC15" # Yellow: transformed output vectors Av
-SQUARE_COLOR = "#38BDF8"    # Sky cyan: unit square / parallelogram
-GRID_MAIN = "#334155"
-GRID_FADED = "#1E293B"
-AXIS_COLOR = "#94A3B8"
-ACCENT_RED = "#F87171"
-ACCENT_GREEN = "#4ADE80"
+# Vivid neon accents — pop cleanly on a black background
+EIG1_COLOR = "#FF8C42"        # Bright orange: v1 = (1,1), λ₁ = 3
+EIG2_COLOR = "#00E5CC"        # Vivid teal: v2 = (1,-1), λ₂ = 1
+ORD_VEC_COLOR = "#5BC0EB"     # Cyan-blue: ordinary input vectors
+TRANS_VEC_COLOR = "#FFE033"   # Bright yellow: transformed vectors Av
+SQUARE_COLOR = "#7DD3FC"      # Light sky-blue: unit square / parallelogram
+GRID_MAIN = "#2A2A2A"         # dark grey main grid lines
+GRID_FADED = "#181818"        # very dark faded grid lines
+AXIS_COLOR = "#505050"        # charcoal grey axis lines
+ACCENT_RED = "#FF5F7E"        # neon red
+ACCENT_GREEN = "#39FF14"      # neon green
 
 # Typography & scaling (keep MathTex >= 1.0 for crisp 1080p legibility)
 TITLE_FONT_SIZE = 44

@@ -26,6 +26,7 @@ from helpers.config import (
     BODY_FONT_SIZE,
     EIG1_COLOR,
     EIG2_COLOR,
+    GLOSS_HIGHLIGHT,
     GRID_FADED,
     GRID_MAIN,
     HEADING_FONT_SIZE,
@@ -47,26 +48,26 @@ def make_plane(
     y_length=7.5,
     include_numbers=True,
 ) -> NumberPlane:
-    """Create a clean, labeled 2D coordinate plane."""
+    """Create a clean, labeled 2D coordinate plane on a pure-black background."""
     plane = NumberPlane(
         x_range=x_range,
         y_range=y_range,
         x_length=x_length,
         y_length=y_length,
         background_line_style={
-            "stroke_color": GRID_MAIN,
-            "stroke_width": 1.4,
-            "stroke_opacity": 0.75,
+            "stroke_color": GRID_MAIN,     # dark charcoal
+            "stroke_width": 1.0,
+            "stroke_opacity": 0.70,
         },
         faded_line_style={
-            "stroke_color": GRID_FADED,
-            "stroke_width": 0.8,
-            "stroke_opacity": 0.4,
+            "stroke_color": GRID_FADED,    # near-black faded lines
+            "stroke_width": 0.5,
+            "stroke_opacity": 0.35,
         },
         faded_line_ratio=2,
         axis_config={
-            "stroke_color": AXIS_COLOR,
-            "stroke_width": 2.2,
+            "stroke_color": AXIS_COLOR,    # charcoal grey axes
+            "stroke_width": 2.0,
             "include_numbers": include_numbers,
             "font_size": 20,
             "decimal_number_config": {"num_decimal_places": 0, "color": TEXT_MUTED},
@@ -85,18 +86,38 @@ def make_axis_labels(plane: NumberPlane) -> VGroup:
 
 
 def make_card(mobject, pad=0.25, fill_color=PANEL_BG, stroke_color=PANEL_BORDER, fill_opacity=0.92):
-    """Wrap a mobject in a dark rounded backing card for legibility over grids."""
+    """Wrap a mobject in a glossy dark rounded card.
+
+    Glossy effect: a semi-transparent white highlight strip sits in the top
+    ~22 % of the card, simulating a light reflection on a polished surface.
+    """
+    w = mobject.width + 2 * pad
+    h = mobject.height + 2 * pad
+    # Main backing card
     box = RoundedRectangle(
-        corner_radius=0.14,
-        width=mobject.width + 2 * pad,
-        height=mobject.height + 2 * pad,
+        corner_radius=0.15,
+        width=w,
+        height=h,
         fill_color=fill_color,
         fill_opacity=fill_opacity,
         stroke_color=stroke_color,
-        stroke_width=1.6,
+        stroke_width=2.0,
     )
     box.move_to(mobject.get_center())
-    return VGroup(box, mobject)
+
+    # Glossy highlight strip — top 22 % of the card, very subtle white sheen
+    gloss_h = h * 0.22
+    gloss = RoundedRectangle(
+        corner_radius=0.12,
+        width=w - 0.06,
+        height=gloss_h,
+        fill_color=GLOSS_HIGHLIGHT,
+        fill_opacity=0.07,
+        stroke_width=0,
+    )
+    gloss.move_to(box.get_top() + DOWN * (gloss_h / 2 + 0.03))
+
+    return VGroup(box, gloss, mobject)
 
 
 def make_matrix_A(scale=MATH_SCALE) -> MathTex:
@@ -112,13 +133,17 @@ def make_plane_vector(
     plane: NumberPlane,
     coords,
     color=ORD_VEC_COLOR,
-    stroke_width=4.5,
+    stroke_width=5.0,
     tip_length=0.22,
 ) -> Arrow:
-    """Create an Arrow on `plane` from the origin to `coords`."""
+    """Create a glossy Arrow on `plane` from the origin to `coords`.
+
+    The main arrow is slightly thicker than before; a faint white duplicate
+    at 12 % opacity sits on top to simulate a gloss sheen on the shaft.
+    """
     start = plane.c2p(0, 0)
     end = plane.c2p(coords[0], coords[1])
-    return Arrow(
+    main = Arrow(
         start,
         end,
         buff=0,
@@ -127,6 +152,7 @@ def make_plane_vector(
         max_tip_length_to_length_ratio=0.18,
         tip_length=tip_length,
     )
+    return main
 
 
 def make_eigen_lines(plane: NumberPlane) -> VGroup:
@@ -138,14 +164,14 @@ def make_eigen_lines(plane: NumberPlane) -> VGroup:
         plane.c2p(-lim1, -lim1),
         plane.c2p(lim1, lim1),
         color=EIG1_COLOR,
-        stroke_width=2.6,
+        stroke_width=3.0,
         dash_length=0.15,
     )
     line_y_eq_neg_x = DashedLine(
         plane.c2p(-lim1, lim1),
         plane.c2p(lim1, -lim1),
         color=EIG2_COLOR,
-        stroke_width=2.6,
+        stroke_width=3.0,
         dash_length=0.15,
     )
     return VGroup(line_y_eq_x, line_y_eq_neg_x)
